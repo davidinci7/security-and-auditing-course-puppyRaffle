@@ -76,6 +76,8 @@ contract PuppyRaffle is ERC721, Ownable {
     /// @notice they have to pay the entrance fee * the number of players
     /// @notice duplicate entrants are not allowed
     /// @param newPlayers the list of players to enter the raffle
+    //@audit the contract doesn't have a receive() nor fallback() function, hence it cannot receive ETH
+    // q shouldn't the check for duplicates be before the push?
     function enterRaffle(address[] memory newPlayers) public payable {
         require(msg.value == entranceFee * newPlayers.length, "PuppyRaffle: Must send enough to enter raffle");
         for (uint256 i = 0; i < newPlayers.length; i++) {
@@ -93,6 +95,7 @@ contract PuppyRaffle is ERC721, Ownable {
 
     /// @param playerIndex the index of the player to refund. You can find it externally by calling `getActivePlayerIndex`
     /// @dev This function will allow there to be blank spots in the array
+    //@audit reentrancy
     function refund(uint256 playerIndex) public {
         address playerAddress = players[playerIndex];
         require(playerAddress == msg.sender, "PuppyRaffle: Only the player can refund");
@@ -154,6 +157,8 @@ contract PuppyRaffle is ERC721, Ownable {
     }
 
     /// @notice this function will withdraw the fees to the feeAddress
+    //@audit No access control
+    //@audit the address(this).balance == uint256(totalFees) can be exploited for a DOS by sending ETH directly to the smart contract
     function withdrawFees() external {
         require(address(this).balance == uint256(totalFees), "PuppyRaffle: There are currently players active!");
         uint256 feesToWithdraw = totalFees;
